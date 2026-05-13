@@ -40,6 +40,13 @@ nav ul a:hover{color:var(--rose);}
 .hero h1 em::after{content:'♥';display:inline-block;margin-left:0.55rem;color:var(--gold);font-size:0.85em;text-shadow:0 0 6px rgba(212,175,55,0.35);animation:heartPulse 4.5s ease-in-out infinite;}
 .heart-fall{position:absolute;inset:0;pointer-events:none;overflow:hidden;opacity:0;transition:opacity 0.45s ease;}
 .heart-fall.active{opacity:1;}
+.sparkle{position:absolute;width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.9);box-shadow:0 0 14px rgba(255,255,255,0.45);opacity:0;transform:scale(0.6);animation:twinkle 2.8s ease-in-out infinite;}
+.sparkle-1{top:18%;left:14%;animation-delay:0.3s;}
+.sparkle-2{top:8%;left:36%;animation-delay:0.6s;}
+.sparkle-3{top:22%;left:60%;animation-delay:0.15s;}
+.sparkle-4{top:12%;left:78%;animation-delay:1s;}
+.sparkle-5{top:32%;left:28%;animation-delay:0.8s;}
+.sparkle-6{top:26%;left:88%;animation-delay:1.2s;}
 .heart{position:absolute;font-size:1.2rem;line-height:1;opacity:0.85;color:rgba(211,95,140,0.9);text-shadow:0 0 12px rgba(255,255,255,0.35);transform:translateY(-40px) rotate(0deg);animation:fall 8s ease-in infinite;animation-play-state:paused;transform-origin:center center;}
 .heart-fall.active .heart{animation-play-state:running;}
 .heart:nth-child(odd){color:rgba(212,175,55,0.95);}
@@ -258,6 +265,7 @@ footer p{font-size:0.82rem;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);}}
 @keyframes heartPulse{0%,100%{transform:scale(1);opacity:0.92;}40%{transform:scale(1.08);opacity:1;}70%{transform:scale(0.98);opacity:0.94;}}
 @keyframes fall{0%{opacity:0;transform:translateY(-40px) scale(0.85) rotate(0deg);}10%{opacity:0.8;}50%{opacity:0.9;transform:translateY(45vh) scale(1) rotate(8deg);}90%{opacity:0.15;transform:translateY(95vh) scale(0.8) rotate(-6deg);}100%{opacity:0;transform:translateY(105vh) scale(0.7) rotate(0deg);}}
+@keyframes twinkle{0%,100%{opacity:0;transform:scale(0.6);}30%{opacity:0.75;transform:scale(1.1);}60%{opacity:0.35;transform:scale(0.85);}80%{opacity:0.9;transform:scale(1);}}
 .reveal{opacity:0;transform:translateY(30px);transition:opacity 0.6s ease,transform 0.6s ease;}
 .reveal.visible{opacity:1;transform:none;}
 .product-card.reveal{opacity:1;transform:none;}
@@ -302,6 +310,12 @@ footer p{font-size:0.82rem;}
 
 <section class="hero" role="main" aria-label="Hero section with call to action">
   <div class="heart-fall" aria-hidden="true">
+    <span class="sparkle sparkle-1"></span>
+    <span class="sparkle sparkle-2"></span>
+    <span class="sparkle sparkle-3"></span>
+    <span class="sparkle sparkle-4"></span>
+    <span class="sparkle sparkle-5"></span>
+    <span class="sparkle sparkle-6"></span>
     <span class="heart heart-1">♥</span>
     <span class="heart heart-2">♥</span>
     <span class="heart heart-3">♥</span>
