@@ -335,6 +335,7 @@
       <button class="tab-btn active" onclick="switchTab('upload')">📁 File Upload</button>
       <button class="tab-btn" onclick="switchTab('products')">🎁 Products</button>
       <button class="tab-btn" onclick="switchTab('files')">📋 Files List</button>
+      <button class="tab-btn" onclick="switchTab('contacts')">💬 Contacts</button>
     </div>
 
     <!-- Upload Tab -->
@@ -413,6 +414,13 @@
       <button class="btn-secondary" onclick="loadFiles()" style="margin-bottom: 20px;">🔄 Refresh List</button>
       <div id="filesList"></div>
     </div>
+
+    <!-- Contacts Tab -->
+    <div id="contacts" class="tab-content">
+      <h2 style="color: #D35F8C; margin-bottom: 20px;">Chat Leads & Contacts</h2>
+      <button class="btn-secondary" onclick="loadContacts()" style="margin-bottom: 20px;">🔄 Refresh Contacts</button>
+      <div id="contactsList"></div>
+    </div>
   </div>
 
   <script>
@@ -428,6 +436,7 @@
 
       if (tabName === 'products') loadProducts();
       if (tabName === 'files') loadFiles();
+      if (tabName === 'contacts') loadContacts();
     }
 
     // File upload handling
@@ -588,6 +597,40 @@
           `).join('');
         })
         .catch(err => console.error('Error loading files:', err));
+    }
+
+    function loadContacts() {
+      fetch(`${API_URL}/api/contacts`)
+        .then(res => res.json())
+        .then(contacts => {
+          const contactsList = document.getElementById('contactsList');
+          if (contacts.length === 0) {
+            contactsList.innerHTML = '<p style="color: #7E6F7E; text-align: center;">No contact leads yet</p>';
+            return;
+          }
+
+          contactsList.innerHTML = contacts.map(c => `
+            <div class="product-item" style="border-color: #7A335A;">
+              <div class="product-header">
+                <div>
+                  <div class="product-name">${c.email || c.phone || 'No contact provided'}</div>
+                  <div style="color: #7E6F7E; font-size: 0.9rem;">Occasion: ${c.occasion || 'Unknown'} • Budget: ${c.budget || 'N/A'}</div>
+                </div>
+                <div style="text-align: right; font-size: 0.85rem; color: #7E6F7E;">${new Date(c.createdAt).toLocaleString()}</div>
+              </div>
+              <p style="color: #2D1F25; margin-bottom: 10px;">${c.message || 'No additional message'}</p>
+              <div style="display: flex; gap: 12px; flex-wrap: wrap; color: #2D1F25; font-size: 0.95rem;">
+                ${c.name ? `<span>Name: ${c.name}</span>` : ''}
+                ${c.email ? `<span>Email: ${c.email}</span>` : ''}
+                ${c.phone ? `<span>Phone: ${c.phone}</span>` : ''}
+              </div>
+            </div>
+          `).join('');
+        })
+        .catch(err => {
+          const contactsList = document.getElementById('contactsList');
+          contactsList.innerHTML = `<p style="color: #E74C3C; text-align: center;">Error loading contacts: ${err.message}</p>`;
+        });
     }
 
     function copyToClipboard(text) {

@@ -243,6 +243,16 @@ app.post('/api/contacts', (req, res) => {
   stmt.finalize();
 });
 
+app.get('/api/contacts', (req, res) => {
+  db.all('SELECT * FROM contacts ORDER BY createdAt DESC', (err, rows) => {
+    if (err) {
+      console.error('DB contacts read error:', err);
+      return res.status(500).json({ error: 'Could not retrieve contacts' });
+    }
+    res.json(rows);
+  });
+});
+
 app.get('/api/files', async (req, res) => {
   if (useS3) {
     try {
