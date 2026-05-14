@@ -97,6 +97,15 @@ section{padding:6rem 5%;}
 .products-header .section-sub{margin:0 auto;}
 .products-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:1.8rem;max-width:1100px;margin:0 auto;min-height:400px;}
 .category-section{grid-column:1/-1;}
+.category-card{background:var(--warm-white);border:1px solid var(--border);border-radius:24px;overflow:hidden;cursor:pointer;transition:transform 0.25s,box-shadow 0.25s;display:flex;flex-direction:column;}
+.category-card:hover{transform:translateY(-6px);box-shadow:0 20px 50px rgba(196,127,168,0.12);}
+.category-card-media{height:220px;overflow:hidden;position:relative;}
+.category-card-media img{width:100%;height:100%;object-fit:cover;}
+.category-card-media .category-card-fallback{display:flex;align-items:center;justify-content:center;height:100%;font-size:3rem;color:var(--charcoal);background:linear-gradient(135deg,#F5E8F2,#EEE8FA);}
+.category-card-body{padding:1.5rem;display:grid;gap:0.75rem;}
+.category-card-title{font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:var(--charcoal);}
+.category-card-desc{font-size:0.95rem;color:var(--muted);line-height:1.6;}
+.category-card-meta{font-size:0.85rem;color:var(--rose-dark);font-weight:700;}
 .category-header{background:linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0.75)),var(--rose-light);border-radius:24px;padding:2rem 1.5rem 1.4rem;display:flex;flex-direction:column;gap:0.7rem;box-shadow:0 20px 50px rgba(196,127,168,0.1);background-size:cover;background-position:center;position:relative;overflow:hidden;}
 .category-header::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,0.35);pointer-events:none;}
 .category-header > *{position:relative;z-index:1;}
@@ -105,6 +114,8 @@ section{padding:6rem 5%;}
 .category-desc{font-size:0.95rem;color:var(--muted);max-width:720px;line-height:1.65;}
 .category-products{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:1.8rem;margin-top:1.4rem;}
 .category-section .empty-state{padding:2rem 1rem;background:var(--rose-light);border-radius:20px;color:var(--rose-dark);text-align:center;}
+.category-back{margin-bottom:1.5rem;}
+.category-back button{background:transparent;border:none;color:var(--rose-dark);font-size:0.95rem;font-weight:700;cursor:pointer;}
 .product-card{background:var(--warm-white);border:1px solid var(--border);border-radius:20px;overflow:hidden;transition:transform 0.25s,box-shadow 0.25s;position:relative;}
 .product-card:hover{transform:translateY(-6px);box-shadow:0 20px 50px rgba(196,127,168,0.14);}
 .product-media{height:220px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
@@ -697,6 +708,7 @@ const DEFAULTS=[
   {id:6,name:'Your Custom Idea',desc:"Have something specific in mind? Tell us your idea — any occasion, any person. We'll design it.",emoji:'✨',price:'₹99–₹150',color:'warm-bg',badge:'',media:null,mediaType:null}
 ];
 let categories=[], products=[],adminOn=false,editId=null;
+let selectedCategoryId=null;
 let sColor='rose-bg',sBadge='',eColor='rose-bg',eBadge='';
 let addMedia=null,addMType=null,editMedia=null,editMType=null,keepMedia=true;
 
@@ -869,6 +881,17 @@ function renderCategoryProducts(products){
   }).join('');
 }
 
+function selectCategory(id) {
+  selectedCategoryId = id;
+  renderProducts();
+  document.querySelector('#products').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function clearCategorySelection() {
+  selectedCategoryId = null;
+  renderProducts();
+}
+
 function renderProducts(){
   const g=document.getElementById('products-grid');
   if (!categories.length) {
@@ -883,17 +906,40 @@ function renderProducts(){
     return;
   }
 
+  if (selectedCategoryId) {
+    const category = categories.find(cat => cat.id === selectedCategoryId);
+    if (!category) {
+      selectedCategoryId = null;
+      return renderProducts();
+    }
+    g.innerHTML = `
+      <div class="category-back"><button type="button" onclick="clearCategorySelection()">← Back to categories</button></div>
+      <section class="category-section reveal">
+        <div class="category-header" ${category.image ? `style="background-image:url('${category.image}');"` : ''}>
+          <div class="category-label">${category.name}</div>
+          <div class="category-title">${category.name}</div>
+          <p class="category-desc">${category.desc || 'Handpicked products just for this occasion.'}</p>
+        </div>
+        <div class="category-products">${renderCategoryProducts(category.products || [])}</div>
+      </section>`;
+    adminOn ? g.classList.add('admin-mode') : g.classList.remove('admin-mode');
+    reObserve();
+    return;
+  }
+
   console.log(`[PetalPost] Rendering ${categories.length} categories`);
   g.innerHTML = categories.map(cat => {
-    const imageStyle = cat.image ? `style="background-image:url('${cat.image}');"` : '';
-    return `<section class="category-section reveal">
-      <div class="category-header" ${imageStyle}>
-        <div class="category-label">${cat.name}</div>
-        <div class="category-title">${cat.name}</div>
-        <p class="category-desc">${cat.desc || 'Handpicked products just for this occasion.'}</p>
-      </div>
-      <div class="category-products">${renderCategoryProducts(cat.products || [])}</div>
-    </section>`;
+    const imageHtml = cat.image ? `<img src="${cat.image}" alt="${cat.name}"/>` : `<div class="category-card-fallback">${cat.name.slice(0,2).toUpperCase()}</div>`;
+    const productCount = (cat.products && cat.products.length) ? cat.products.length : 0;
+    return `
+      <div class="category-card reveal" onclick="selectCategory(${cat.id})">
+        <div class="category-card-media">${imageHtml}</div>
+        <div class="category-card-body">
+          <div class="category-card-title">${cat.name}</div>
+          <div class="category-card-desc">${cat.desc || 'Explore products for this category.'}</div>
+          <div class="category-card-meta">${productCount} product${productCount === 1 ? '' : 's'}</div>
+        </div>
+      </div>`;
   }).join('');
   adminOn ? g.classList.add('admin-mode') : g.classList.remove('admin-mode');
   reObserve();
@@ -1286,7 +1332,14 @@ function getBestCategory(occasion) {
 }
 
 function redirectToCategory(category) {
+  const match = categories.find(cat => cat.name.toLowerCase().includes(category.toLowerCase()));
+  if (match) {
+    selectedCategoryId = match.id;
+  } else {
+    selectedCategoryId = null;
+  }
   createChatMessage(`I’m taking you to the Products section so you can explore the best ${category}.`, 'bot');
+  renderProducts();
   document.querySelector('#products').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
