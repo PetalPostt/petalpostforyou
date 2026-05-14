@@ -28,6 +28,14 @@ const db = new sqlite3.Database(dbPath, (err) => {
 });
 
 db.serialize(() => {
+  db.run(`CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    desc TEXT,
+    image TEXT,
+    createdAt TEXT NOT NULL
+  )`);
+
   db.run(`CREATE TABLE IF NOT EXISTS products (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
@@ -38,7 +46,9 @@ db.serialize(() => {
     badge TEXT,
     media TEXT,
     mediaType TEXT,
-    createdAt TEXT NOT NULL
+    categoryId INTEGER,
+    createdAt TEXT NOT NULL,
+    FOREIGN KEY(categoryId) REFERENCES categories(id)
   )`);
 
   db.run(`CREATE TABLE IF NOT EXISTS contacts (
@@ -52,6 +62,25 @@ db.serialize(() => {
     createdAt TEXT NOT NULL
   )`);
 });
+
+function ensureProductCategoryColumn() {
+  db.all(`PRAGMA table_info(products)`, (err, cols) => {
+    if (err) {
+      console.error('Failed to inspect products table:', err);
+      return;
+    }
+    const hasCategoryId = cols.some(col => col.name === 'categoryId');
+    if (!hasCategoryId) {
+      db.run('ALTER TABLE products ADD COLUMN categoryId INTEGER', (alterErr) => {
+        if (alterErr) {
+          console.error('Failed to add categoryId column:', alterErr);
+        }
+      });
+    }
+  });
+}
+
+ensureProductCategoryColumn();
 
 let s3Client;
 let s3Bucket;
@@ -174,7 +203,10 @@ app.post('/api/chat', async (req, res) => {
 });
 
 app.get('/api/products', (req, res) => {
-  db.all('SELECT * FROM products ORDER BY createdAt DESC', (err, rows) => {
+  db.all(`SELECT p.*, c.name AS categoryName, c.image AS categoryImage, c.desc AS categoryDesc
+          FROM products p
+          LEFT JOIN categories c ON p.categoryId = c.id
+          ORDER BY p.createdAt DESC`, (err, rows) => {
     if (err) {
       console.error('DB read error:', err);
       return res.status(500).json([]);
@@ -184,24 +216,24 @@ app.get('/api/products', (req, res) => {
 });
 
 app.post('/api/products', (req, res) => {
-  const { name, desc, emoji, price, color, badge, media, mediaType } = req.body;
+  const { name, desc, emoji, price, color, badge, media, mediaType, categoryId } = req.body;
   const createdAt = new Date().toISOString();
-  const stmt = db.prepare(`INSERT INTO products (name, desc, emoji, price, color, badge, media, mediaType, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
-  stmt.run(name, desc, emoji, price, color, badge, media, mediaType, createdAt, function(err) {
+  const stmt = db.prepare(`INSERT INTO products (name, desc, emoji, price, color, badge, media, mediaType, categoryId, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+  stmt.run(name, desc, emoji, price, color, badge, media, mediaType, categoryId || null, createdAt, function(err) {
     if (err) {
       console.error('DB insert error:', err);
       return res.status(500).json({ error: 'Could not save product' });
     }
-    const product = { id: this.lastID, name, desc, emoji, price, color, badge, media, mediaType, createdAt };
+    const product = { id: this.lastID, name, desc, emoji, price, color, badge, media, mediaType, categoryId: categoryId || null, createdAt };
     res.json({ success: true, product });
   });
   stmt.finalize();
 });
 
 app.put('/api/products/:id', (req, res) => {
-  const { name, desc, emoji, price, color, badge, media, mediaType } = req.body;
-  const stmt = db.prepare(`UPDATE products SET name = ?, desc = ?, emoji = ?, price = ?, color = ?, badge = ?, media = ?, mediaType = ? WHERE id = ?`);
-  stmt.run(name, desc, emoji, price, color, badge, media, mediaType, parseInt(req.params.id, 10), function(err) {
+  const { name, desc, emoji, price, color, badge, media, mediaType, categoryId } = req.body;
+  const stmt = db.prepare(`UPDATE products SET name = ?, desc = ?, emoji = ?, price = ?, color = ?, badge = ?, media = ?, mediaType = ?, categoryId = ? WHERE id = ?`);
+  stmt.run(name, desc, emoji, price, color, badge, media, mediaType, categoryId || null, parseInt(req.params.id, 10), function(err) {
     if (err) {
       console.error('DB update error:', err);
       return res.status(500).json({ error: 'Could not update product' });
@@ -251,6 +283,83 @@ app.get('/api/contacts', (req, res) => {
     }
     res.json(rows);
   });
+});
+
+app.get('/api/categories', (req, res) => {
+  db.all('SELECT * FROM categories ORDER BY name', (catErr, categories) => {
+    if (catErr) {
+      console.error('DB categories read error:', catErr);
+      return res.status(500).json({ error: 'Could not retrieve categories' });
+    }
+
+    db.all('SELECT * FROM products ORDER BY createdAt DESC', (prodErr, products) => {
+      if (prodErr) {
+        console.error('DB products read error:', prodErr);
+        return res.status(500).json({ error: 'Could not retrieve products' });
+      }
+
+      const categoryMap = categories.map(cat => ({ ...cat, products: [] }));
+      const uncategorized = { id: 0, name: 'Uncategorized', desc: '', image: '', products: [] };
+
+      products.forEach(product => {
+        const category = categoryMap.find(cat => cat.id === product.categoryId);
+        if (category) {
+          category.products.push(product);
+        } else {
+          uncategorized.products.push(product);
+        }
+      });
+
+      const response = [...categoryMap];
+      if (uncategorized.products.length > 0) response.push(uncategorized);
+      res.json(response);
+    });
+  });
+});
+
+app.post('/api/categories', (req, res) => {
+  const { name, desc, image } = req.body;
+  const createdAt = new Date().toISOString();
+  const stmt = db.prepare(`INSERT INTO categories (name, desc, image, createdAt) VALUES (?, ?, ?, ?)`);
+  stmt.run(name, desc || null, image || null, createdAt, function(err) {
+    if (err) {
+      console.error('DB category insert error:', err);
+      return res.status(500).json({ error: 'Could not save category' });
+    }
+    res.json({ success: true, category: { id: this.lastID, name, desc, image, createdAt } });
+  });
+  stmt.finalize();
+});
+
+app.put('/api/categories/:id', (req, res) => {
+  const { name, desc, image } = req.body;
+  const stmt = db.prepare(`UPDATE categories SET name = ?, desc = ?, image = ? WHERE id = ?`);
+  stmt.run(name, desc || null, image || null, parseInt(req.params.id, 10), function(err) {
+    if (err) {
+      console.error('DB category update error:', err);
+      return res.status(500).json({ error: 'Could not update category' });
+    }
+    res.json({ success: true });
+  });
+  stmt.finalize();
+});
+
+app.delete('/api/categories/:id', (req, res) => {
+  const categoryId = parseInt(req.params.id, 10);
+  const stmt = db.prepare('DELETE FROM categories WHERE id = ?');
+  stmt.run(categoryId, function(err) {
+    if (err) {
+      console.error('DB category delete error:', err);
+      return res.status(500).json({ error: 'Could not delete category' });
+    }
+    db.run('UPDATE products SET categoryId = NULL WHERE categoryId = ?', [categoryId], (updateErr) => {
+      if (updateErr) {
+        console.error('DB product category reset error:', updateErr);
+      }
+      res.json({ success: true });
+    });
+  });
+  stmt.finalize();
 });
 
 app.get('/api/files', async (req, res) => {

@@ -96,6 +96,15 @@ section{padding:6rem 5%;}
 .products-header{text-align:center;margin-bottom:3.5rem;}
 .products-header .section-sub{margin:0 auto;}
 .products-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:1.8rem;max-width:1100px;margin:0 auto;min-height:400px;}
+.category-section{grid-column:1/-1;}
+.category-header{background:linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0.75)),var(--rose-light);border-radius:24px;padding:2rem 1.5rem 1.4rem;display:flex;flex-direction:column;gap:0.7rem;box-shadow:0 20px 50px rgba(196,127,168,0.1);background-size:cover;background-position:center;position:relative;overflow:hidden;}
+.category-header::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,0.35);pointer-events:none;}
+.category-header > *{position:relative;z-index:1;}
+.category-label{font-size:0.75rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#7A335A;}
+.category-title{font-family:'Playfair Display',serif;font-size:clamp(1.8rem,3vw,2.4rem);font-weight:700;color:var(--charcoal);}
+.category-desc{font-size:0.95rem;color:var(--muted);max-width:720px;line-height:1.65;}
+.category-products{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:1.8rem;margin-top:1.4rem;}
+.category-section .empty-state{padding:2rem 1rem;background:var(--rose-light);border-radius:20px;color:var(--rose-dark);text-align:center;}
 .product-card{background:var(--warm-white);border:1px solid var(--border);border-radius:20px;overflow:hidden;transition:transform 0.25s,box-shadow 0.25s;position:relative;}
 .product-card:hover{transform:translateY(-6px);box-shadow:0 20px 50px rgba(196,127,168,0.14);}
 .product-media{height:220px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
@@ -529,6 +538,27 @@ footer p{font-size:0.82rem;}
     <div class="tab-content active" id="tab-add">
       <div class="form-group"><label>Product Name</label><input id="f-name" placeholder="e.g. Diwali Gift Card"/></div>
       <div class="form-group"><label>Description</label><textarea id="f-desc" placeholder="Describe this gift..."></textarea></div>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="f-category" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;font-size:1rem;">
+          <option value="">Choose a category</option>
+        </select>
+        <small style="color:var(--muted);font-size:0.85rem;display:block;margin-top:0.4rem;">Select which category this product belongs to.</small>
+      </div>
+      <div class="form-group" style="margin-bottom:1rem;">
+        <button class="submit-btn btn-secondary" type="button" onclick="toggleNewCategory()">+ New Category</button>
+      </div>
+      <div id="new-category-panel" style="display:none;background:#fff;border:1px solid var(--border);border-radius:20px;padding:1rem;margin-bottom:1.2rem;">
+        <div class="form-group"><label>Category Name</label><input id="f-category-name" placeholder="e.g. Birthday Gifts"/></div>
+        <div class="form-group"><label>Category Description</label><textarea id="f-category-desc" placeholder="Describe this category..."></textarea></div>
+        <div class="form-group">
+          <label>Category Image</label>
+          <input type="file" id="f-category-image" accept="image/*" onchange="previewCategoryImage()" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;font-size:1rem;"/>
+          <div class="upload-preview" id="category-image-preview" style="margin-top:1rem;display:none;"></div>
+        </div>
+        <button class="submit-btn btn-secondary" type="button" onclick="createCategory()">Create Category</button>
+        <div class="success-msg" id="category-success" style="display:none;margin-top:0.8rem;">✅ Category saved!</div>
+      </div>
       <div class="form-row">
         <div class="form-group"><label>Emoji (backup icon)</label><input id="f-emoji" placeholder="🎁" maxlength="4"/></div>
         <div class="form-group"><label>Price (₹)</label><input id="f-price" placeholder="99 or 99–150"/></div>
@@ -572,6 +602,9 @@ footer p{font-size:0.82rem;}
 
     <!-- MANAGE -->
     <div class="tab-content" id="tab-manage">
+      <h3 style="margin-bottom:1rem;color:var(--rose-dark);">Categories</h3>
+      <div class="admin-category-list" id="admin-category-list"></div>
+      <h3 style="margin:2rem 0 1rem;color:var(--rose-dark);">Products</h3>
       <div class="admin-product-list" id="admin-product-list"></div>
     </div>
 
@@ -616,6 +649,7 @@ footer p{font-size:0.82rem;}
         <div class="form-group"><label>Emoji</label><input id="e-emoji" maxlength="4"/></div>
         <div class="form-group"><label>Price (₹)</label><input id="e-price"/></div>
       </div>
+      <div class="form-group"><label>Category</label><select id="e-category" style="width:100%;padding:12px;border:2px solid var(--border);border-radius:12px;font-family:inherit;font-size:1rem;"><option value="">Choose a category</option></select></div>
       <div class="form-group">
         <label>Replace Image / Video</label>
         <div class="upload-zone">
@@ -662,7 +696,7 @@ const DEFAULTS=[
   {id:5,name:'Eid / Festival Gift',desc:'Share the joy of Eid, Diwali, or any festival with a beautifully crafted virtual gift card.',emoji:'🌙',price:'₹99',color:'mint-bg',badge:'',media:null,mediaType:null},
   {id:6,name:'Your Custom Idea',desc:"Have something specific in mind? Tell us your idea — any occasion, any person. We'll design it.",emoji:'✨',price:'₹99–₹150',color:'warm-bg',badge:'',media:null,mediaType:null}
 ];
-let products=[],adminOn=false,editId=null;
+let categories=[], products=[],adminOn=false,editId=null;
 let sColor='rose-bg',sBadge='',eColor='rose-bg',eBadge='';
 let addMedia=null,addMType=null,editMedia=null,editMType=null,keepMedia=true;
 
@@ -692,6 +726,121 @@ function loadProducts(){
     });
 }
 
+let newCategoryImageFile = null;
+
+function loadCategories(){
+  return fetch(`${API_URL}/api/categories`)
+    .then(res => {
+      if (!res.ok) throw new Error('Failed to load categories from server');
+      return res.json();
+    })
+    .then(data => {
+      categories = Array.isArray(data) ? data : [];
+      populateCategorySelect();
+    })
+    .catch(err => {
+      console.warn('[PetalPost] Server category fetch failed.', err);
+      categories = [];
+      populateCategorySelect();
+    });
+}
+
+function populateCategorySelect() {
+  const selects = [document.getElementById('f-category'), document.getElementById('e-category')].filter(Boolean);
+  selects.forEach(select => {
+    const current = select.value;
+    select.innerHTML = '<option value="">Choose a category</option>' + categories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('');
+    if (current) select.value = current;
+  });
+}
+
+function toggleNewCategory() {
+  const panel = document.getElementById('new-category-panel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
+function previewCategoryImage() {
+  const fileInput = document.getElementById('f-category-image');
+  const preview = document.getElementById('category-image-preview');
+  if (!fileInput.files || !fileInput.files[0]) {
+    preview.style.display = 'none';
+    preview.innerHTML = '';
+    newCategoryImageFile = null;
+    return;
+  }
+
+  const file = fileInput.files[0];
+  newCategoryImageFile = file;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    preview.style.display = 'block';
+    preview.innerHTML = `<img src="${ev.target.result}" alt="Category preview" style="width:100%;height:auto;border-radius:12px;display:block;"/>`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function createCategory() {
+  const name = document.getElementById('f-category-name').value.trim();
+  const desc = document.getElementById('f-category-desc').value.trim();
+  const successEl = document.getElementById('category-success');
+  if (!name) {
+    alert('❌ Category name is required.');
+    return;
+  }
+
+  const create = (imageUrl) => {
+    fetch(`${API_URL}/api/categories`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, desc, image: imageUrl || null })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        successEl.style.display = 'block';
+        setTimeout(() => successEl.style.display = 'none', 3000);
+        document.getElementById('f-category-name').value = '';
+        document.getElementById('f-category-desc').value = '';
+        document.getElementById('f-category-image').value = '';
+        document.getElementById('category-image-preview').style.display = 'none';
+        document.getElementById('category-image-preview').innerHTML = '';
+        newCategoryImageFile = null;
+        loadCategories();
+      } else {
+        alert('❌ Failed to create category.');
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert('❌ Network error while creating category.');
+    });
+  };
+
+  if (newCategoryImageFile) {
+    const formData = new FormData();
+    formData.append('file', newCategoryImageFile);
+    fetch(`${API_URL}/api/upload`, {
+      method: 'POST',
+      body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success && data.url) {
+        create(data.url);
+      } else {
+        throw new Error('Upload failed');
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert('❌ Category image upload failed.');
+    });
+    return;
+  }
+
+  create(null);
+}
+
 function saveProductsLocally(){
   localStorage.setItem(SK_P, JSON.stringify(products));
 }
@@ -706,33 +855,111 @@ function applyIGLinks(){
   document.getElementById('profile-handle-text').textContent='@'+getIG();
 }
 
-function renderProducts(){
-  const g=document.getElementById('products-grid');
-  if(!products.length){
-    g.innerHTML='<p style="text-align:center;color:var(--muted);padding:3rem;grid-column:1/-1;">No products yet — add one from the Studio Portal! 🌸</p>';
-    return;
+function renderCategoryProducts(products){
+  const u = igUrl();
+  if (!products.length) {
+    return '<div class="empty-state">No products in this category yet.</div>';
   }
-  console.log(`[PetalPost] Rendering ${products.length} products`);
-  const u=igUrl();
-  g.innerHTML=products.map(p=>{
-    const bc=p.badge==='New'?'badge-new':p.badge==='Sale'?'badge-sale':'';
-    const bh=p.badge?`<span class="product-badge ${bc}">${p.badge}</span>`:'';
-    const eb=adminOn?`<button class="admin-edit-btn" onclick="openEdit(${p.id})">✏️ Edit</button>`:'';
-    let mh=p.media?(p.mediaType==='video'?`<video src="${p.media}" autoplay muted loop playsinline></video>`:`<img src="${p.media}" alt="${p.name}"/>`):
-      `<span class="emoji-placeholder">${p.emoji||'🎁'}</span>`;
+  return products.map(p => {
+    const bc = p.badge==='New' ? 'badge-new' : p.badge==='Sale' ? 'badge-sale' : '';
+    const bh = p.badge ? `<span class="product-badge ${bc}">${p.badge}</span>` : '';
+    const eb = adminOn ? `<button class="admin-edit-btn" onclick="openEdit(${p.id})">✏️ Edit</button>` : '';
+    const mh = p.media ? (p.mediaType==='video' ? `<video src="${p.media}" autoplay muted loop playsinline></video>` : `<img src="${p.media}" alt="${p.name}"/>`) : `<span class="emoji-placeholder">${p.emoji||'🎁'}</span>`;
     return `<div class="product-card reveal">${eb}<div class="product-media ${p.media?'':p.color}">${mh}${bh}</div><div class="product-body"><div class="product-name">${p.name}</div><p class="product-desc">${p.desc}</p><div class="product-footer"><div class="product-price">${p.price.startsWith('₹')?p.price:'₹'+p.price} <span>onwards</span></div><a href="${u}" class="order-btn" target="_blank" rel="noopener">Order →</a></div></div></div>`;
   }).join('');
-  adminOn?g.classList.add('admin-mode'):g.classList.remove('admin-mode');
+}
+
+function renderProducts(){
+  const g=document.getElementById('products-grid');
+  if (!categories.length) {
+    if (!products.length) {
+      g.innerHTML = '<p style="text-align:center;color:var(--muted);padding:3rem;grid-column:1/-1;">No products yet — add one from the Studio Portal! 🌸</p>';
+      return;
+    }
+    console.log(`[PetalPost] Rendering ${products.length} products without categories`);
+    g.innerHTML = `<div class="category-section reveal"><div class="category-header"><div><h3>Our Gifts</h3><p>Explore all available items.</p></div></div><div class="category-products">${renderCategoryProducts(products)}</div></div>`;
+    adminOn ? g.classList.add('admin-mode') : g.classList.remove('admin-mode');
+    reObserve();
+    return;
+  }
+
+  console.log(`[PetalPost] Rendering ${categories.length} categories`);
+  g.innerHTML = categories.map(cat => {
+    const imageStyle = cat.image ? `style="background-image:url('${cat.image}');"` : '';
+    return `<section class="category-section reveal">
+      <div class="category-header" ${imageStyle}>
+        <div class="category-label">${cat.name}</div>
+        <div class="category-title">${cat.name}</div>
+        <p class="category-desc">${cat.desc || 'Handpicked products just for this occasion.'}</p>
+      </div>
+      <div class="category-products">${renderCategoryProducts(cat.products || [])}</div>
+    </section>`;
+  }).join('');
+  adminOn ? g.classList.add('admin-mode') : g.classList.remove('admin-mode');
   reObserve();
 }
 
 function renderManage(){
+  const catContainer = document.getElementById('admin-category-list');
+  if (!categories.length) {
+    catContainer.innerHTML = '<div class="empty-state">No categories yet.</div>';
+  } else {
+    catContainer.innerHTML = categories.map(cat => {
+      const thumb = cat.image ? `<img class="admin-thumb" src="${cat.image}" alt="${cat.name}"/>` : `<div class="admin-thumb-emoji">${cat.name.slice(0,2).toUpperCase()}</div>`;
+      return `<div class="admin-product-item">${thumb}<div class="admin-product-info"><strong>${cat.name}</strong><span>${cat.desc || 'No description'}</span></div><div class="admin-product-actions"><button class="icon-btn edit" onclick="editCategory(${cat.id})">✏️</button><button class="icon-btn del" onclick="deleteCategory(${cat.id})">🗑️</button></div></div>`;
+    }).join('');
+  }
+
   const l=document.getElementById('admin-product-list');
   if(!products.length){l.innerHTML='<div class="empty-state">No products yet.</div>';return;}
   l.innerHTML=products.map(p=>{
     const th=p.media?(p.mediaType==='video'?`<video class="admin-thumb" src="${p.media}" muted></video>`:`<img class="admin-thumb" src="${p.media}" alt=""/>`):`<div class="admin-thumb-emoji">${p.emoji||'🎁'}</div>`;
-    return `<div class="admin-product-item">${th}<div class="admin-product-info"><strong>${p.name}</strong><span>${p.price.startsWith('₹')?p.price:'₹'+p.price} · ${p.badge||'No badge'}</span></div><div class="admin-product-actions"><button class="icon-btn edit" onclick="openEdit(${p.id})">✏️</button><button class="icon-btn del" onclick="delProduct(${p.id})">🗑️</button></div></div>`;
+    return `<div class="admin-product-item">${th}<div class="admin-product-info"><strong>${p.name}</strong><span>${p.price.startsWith('₹')?p.price:'₹'+p.price} · ${p.badge||'No badge'} · ${p.categoryName||'Uncategorized'}</span></div><div class="admin-product-actions"><button class="icon-btn edit" onclick="openEdit(${p.id})">✏️</button><button class="icon-btn del" onclick="delProduct(${p.id})">🗑️</button></div></div>`;
   }).join('');
+}
+
+function editCategory(id) {
+  const cat = categories.find(c => c.id === id);
+  if (!cat) return;
+  const name = prompt('Category name', cat.name);
+  if (!name) return;
+  const desc = prompt('Category description', cat.desc || '');
+  if (desc === null) return;
+  const image = prompt('Category image URL', cat.image || '');
+  fetch(`${API_URL}/api/categories/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, desc, image: image || null })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      loadCategories().then(() => renderManage());
+    } else {
+      alert('❌ Could not update category.');
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    alert('❌ Network error while updating category.');
+  });
+}
+
+function deleteCategory(id) {
+  if (!confirm('Delete this category? Existing products will become uncategorized.')) return;
+  fetch(`${API_URL}/api/categories/${id}`, { method: 'DELETE' })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        loadCategories().then(() => { renderManage(); renderProducts(); });
+      } else {
+        alert('❌ Could not delete category.');
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert('❌ Network error while deleting category.');
+    });
 }
 
 // AUTH
@@ -811,7 +1038,8 @@ function addProduct(){
   const e=document.getElementById('f-emoji').value.trim()||'🎁';
   const rp=document.getElementById('f-price').value.trim()||'₹99';
   const pr=rp.startsWith('₹')?rp:'₹'+rp;
-  const product = {name:n,desc:d,emoji:e,price:pr,color:sColor,badge:sBadge,media:addMedia,mediaType:addMType};
+  const categoryId = parseInt(document.getElementById('f-category').value, 10) || null;
+  const product = {name:n,desc:d,emoji:e,price:pr,color:sColor,badge:sBadge,media:addMedia,mediaType:addMType,categoryId};
 
   fetch(`${API_URL}/api/products`, {
     method:'POST',
@@ -847,6 +1075,7 @@ function openEdit(id){
   document.getElementById('e-desc').value=p.desc;
   document.getElementById('e-emoji').value=p.emoji;
   document.getElementById('e-price').value=p.price;
+  document.getElementById('e-category').value = p.categoryId || '';
   const ep=document.getElementById('edit-preview');
   if(p.media){
     ep.innerHTML=`<button class="remove-media" onclick="removeMedia('edit')">✕</button>`+(p.mediaType==='video'?`<video src="${p.media}" autoplay muted loop playsinline></video>`:`<img src="${p.media}"/>`);
@@ -871,6 +1100,7 @@ function saveEdit(){
     price:rp?(rp.startsWith('₹')?rp:'₹'+rp):p.price,
     color:eColor,
     badge:eBadge,
+    categoryId: parseInt(document.getElementById('e-category').value, 10) || null,
     media: keepMedia ? p.media : editMedia,
     mediaType: keepMedia ? p.mediaType : editMType
   };
@@ -978,9 +1208,9 @@ document.getElementById('nav-menu').querySelectorAll('a').forEach(link=>{
 // INIT
 console.log('[PetalPost] Initializing website...');
 document.addEventListener('DOMContentLoaded',()=>{
-  loadProducts().then(() => {
+  Promise.all([loadProducts(), loadCategories()]).then(() => {
     if(!products.length) console.warn('[PetalPost] Products array is empty after load!');
-    else console.log(`[PetalPost] ✓ Loaded ${products.length} products`);
+    if(!categories.length) console.warn('[PetalPost] No categories available yet.');
     renderProducts();
     applyIGLinks();
     reObserve();
