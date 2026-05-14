@@ -485,11 +485,11 @@ footer p{font-size:0.82rem;}
 <button class="chat-button" id="chat-open-btn" aria-label="Open chat">💬 Chat with us</button>
 <div class="chat-panel" id="chat-panel" aria-hidden="true">
   <div class="chat-header">
-    <strong>PetalPost Assistant</strong>
+    <strong>Kridha</strong>
     <button class="chat-close" id="chat-close-btn" aria-label="Close chat">×</button>
   </div>
   <div class="chat-messages" id="chat-messages">
-    <div class="chat-message bot">Hi! I’m PetalPost — your gift-pick assistant. What occasion are you celebrating?</div>
+    <div class="chat-message bot">Hi! I’m Kridha — your gift-pick assistant. What occasion are you celebrating?</div>
   </div>
   <form class="chat-form" id="chat-form">
     <input id="chat-input" type="text" placeholder="Ask a question..." autocomplete="off" aria-label="Chat input" />
@@ -1044,6 +1044,22 @@ function parseContactInfo(text) {
   };
 }
 
+function getBestCategory(occasion) {
+  const occ = (occasion || '').toLowerCase();
+  if (occ.includes('birthday')) return 'Birthday Gifts';
+  if (occ.includes('anniversary') || occ.includes('annivers') || occ.includes('proposal')) return 'Anniversary Gifts';
+  if (occ.includes('wedding')) return 'Wedding Gifts';
+  if (occ.includes('festival') || occ.includes('diwali') || occ.includes('holi') || occ.includes('eid')) return 'Festival Gifts';
+  if (occ.includes('love') || occ.includes('romance') || occ.includes('valentine')) return 'Romance Gifts';
+  if (occ.includes('thank') || occ.includes('congrats') || occ.includes('celebrate')) return 'Celebration Gifts';
+  return 'Special Gifts';
+}
+
+function redirectToCategory(category) {
+  createChatMessage(`I’m taking you to the Products section so you can explore the best ${category}.`, 'bot');
+  document.querySelector('#products').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function formatSuggestion(occasion, budget) {
   const amount = parseInt(String(budget).replace(/[^0-9]/g, ''), 10) || 150;
   const occ = (occasion || '').toLowerCase();
@@ -1110,7 +1126,9 @@ function handleChatSubmission(message) {
   if (chatStage === 'askBudget') {
     chatContext.budget = message;
     const suggestion = formatSuggestion(chatContext.occasion, chatContext.budget);
-    createChatMessage(suggestion, 'bot');
+    const category = getBestCategory(chatContext.occasion);
+    createChatMessage(`${suggestion} I think the best fit is our ${category}.`, 'bot');
+    redirectToCategory(category);
     chatStage = 'askContact';
     askNextQuestion();
     return;
