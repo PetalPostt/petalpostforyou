@@ -738,7 +738,7 @@ function loadProducts(){
     });
 }
 
-let newCategoryImageFile = null;
+let newCategoryImageData = null;
 
 function loadCategories(){
   return fetch(`${API_URL}/api/categories`)
@@ -777,14 +777,14 @@ function previewCategoryImage() {
   if (!fileInput.files || !fileInput.files[0]) {
     preview.style.display = 'none';
     preview.innerHTML = '';
-    newCategoryImageFile = null;
+    newCategoryImageData = null;
     return;
   }
 
   const file = fileInput.files[0];
-  newCategoryImageFile = file;
   const reader = new FileReader();
   reader.onload = ev => {
+    newCategoryImageData = ev.target.result;
     preview.style.display = 'block';
     preview.innerHTML = `<img src="${ev.target.result}" alt="Category preview" style="width:100%;height:auto;border-radius:12px;display:block;"/>`;
   };
@@ -816,7 +816,7 @@ function createCategory() {
         document.getElementById('f-category-image').value = '';
         document.getElementById('category-image-preview').style.display = 'none';
         document.getElementById('category-image-preview').innerHTML = '';
-        newCategoryImageFile = null;
+        newCategoryImageData = null;
         loadCategories();
       } else {
         alert('❌ Failed to create category.');
@@ -828,25 +828,8 @@ function createCategory() {
     });
   };
 
-  if (newCategoryImageFile) {
-    const formData = new FormData();
-    formData.append('file', newCategoryImageFile);
-    fetch(`${API_URL}/api/upload`, {
-      method: 'POST',
-      body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success && data.url) {
-        create(data.url);
-      } else {
-        throw new Error('Upload failed');
-      }
-    })
-    .catch(err => {
-      console.error(err);
-      alert('❌ Category image upload failed.');
-    });
+  if (newCategoryImageData) {
+    create(newCategoryImageData);
     return;
   }
 
