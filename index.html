@@ -631,11 +631,36 @@ let products=[],adminOn=false,editId=null;
 let sColor='rose-bg',sBadge='',eColor='rose-bg',eBadge='';
 let addMedia=null,addMType=null,editMedia=null,editMType=null,keepMedia=true;
 
+const API_URL = window.location.origin;
 const getPw=()=>localStorage.getItem(SK_PW)||'@smit@G@ut@m0102';
 const getIG=()=>localStorage.getItem(SK_IG)||'petalpost.in';
 const igUrl=()=>'https://instagram.com/'+getIG();
-function load(){const s=localStorage.getItem(SK_P);products=s?JSON.parse(s):JSON.parse(JSON.stringify(DEFAULTS));}
-function save(){localStorage.setItem(SK_P,JSON.stringify(products));}
+
+function loadProducts(){
+  return fetch(`${API_URL}/api/products`)
+    .then(res => {
+      if (!res.ok) throw new Error('Failed to load products from server');
+      return res.json();
+    })
+    .then(data => {
+      if (Array.isArray(data) && data.length) {
+        products = data;
+      } else {
+        const s = localStorage.getItem(SK_P);
+        products = s ? JSON.parse(s) : JSON.parse(JSON.stringify(DEFAULTS));
+      }
+    })
+    .catch(err => {
+      console.warn('[PetalPost] Server product fetch failed, using local fallback.', err);
+      const s = localStorage.getItem(SK_P);
+      products = s ? JSON.parse(s) : JSON.parse(JSON.stringify(DEFAULTS));
+    });
+}
+
+function saveProductsLocally(){
+  localStorage.setItem(SK_P, JSON.stringify(products));
+}
+
 function nid(){return products.length?Math.max(...products.map(p=>p.id))+1:1;}
 
 function applyIGLinks(){
@@ -649,10 +674,9 @@ function applyIGLinks(){
 function renderProducts(){
   const g=document.getElementById('products-grid');
   if(!products.length){
-    console.warn('[PetalPost] No products loaded. Loading defaults...');
-    load();
+    g.innerHTML='<p style="text-align:center;color:var(--muted);padding:3rem;grid-column:1/-1;">No products yet — add one from the Studio Portal! 🌸</p>';
+    return;
   }
-  if(!products.length){g.innerHTML='<p style="text-align:center;color:var(--muted);padding:3rem;grid-column:1/-1;">No products yet — add one from the Studio Portal! 🌸</p>';return;}
   console.log(`[PetalPost] Rendering ${products.length} products`);
   const u=igUrl();
   g.innerHTML=products.map(p=>{
@@ -752,15 +776,32 @@ function addProduct(){
   const e=document.getElementById('f-emoji').value.trim()||'🎁';
   const rp=document.getElementById('f-price').value.trim()||'₹99';
   const pr=rp.startsWith('₹')?rp:'₹'+rp;
-  products.push({id:nid(),name:n,desc:d,emoji:e,price:pr,color:sColor,badge:sBadge,media:addMedia,mediaType:addMType});
-  save();renderProducts();renderManage();
-  ['f-name','f-desc','f-emoji','f-price'].forEach(i=>document.getElementById(i).value='');
-  removeMedia('add');
-  document.querySelectorAll('#color-grid .color-opt').forEach(e=>e.classList.remove('selected'));
-  document.querySelector('#color-grid [data-color="rose-bg"]').classList.add('selected');sColor='rose-bg';
-  document.querySelectorAll('#badge-grid .badge-opt').forEach(e=>e.classList.remove('selected'));
-  document.querySelector('#badge-grid [data-badge=""]').classList.add('selected');sBadge='';
-  const m=document.getElementById('add-success');m.classList.add('show');setTimeout(()=>m.classList.remove('show'),3000);
+  const product = {name:n,desc:d,emoji:e,price:pr,color:sColor,badge:sBadge,media:addMedia,mediaType:addMType};
+
+  fetch(`${API_URL}/api/products`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(product)
+  })
+  .then(res=>res.json())
+  .then(data=>{
+    if(data.success){
+      products.push(data.product);
+      saveProductsLocally();
+      renderProducts();
+      renderManage();
+      ['f-name','f-desc','f-emoji','f-price'].forEach(i=>document.getElementById(i).value='');
+      removeMedia('add');
+      document.querySelectorAll('#color-grid .color-opt').forEach(e=>e.classList.remove('selected'));
+      document.querySelector('#color-grid [data-color="rose-bg"]').classList.add('selected');sColor='rose-bg';
+      document.querySelectorAll('#badge-grid .badge-opt').forEach(e=>e.classList.remove('selected'));
+      document.querySelector('#badge-grid [data-badge=""]').classList.add('selected');sBadge='';
+      const m=document.getElementById('add-success');m.classList.add('show');setTimeout(()=>m.classList.remove('show'),3000);
+    } else {
+      alert('❌ Could not add product.');
+    }
+  })
+  .catch(err=>{console.error(err);alert('❌ Network error while adding product.');});
 }
 
 // EDIT
@@ -787,18 +828,54 @@ function saveEdit(){
   const newDesc=document.getElementById('e-desc').value.trim();
   if(!newName||newName.length<3){alert('❌ Product name must be at least 3 characters.');return;}
   if(!newDesc||newDesc.length<10){alert('❌ Description must be at least 10 characters.');return;}
-  p.name=newName;
-  p.desc=newDesc;
-  p.emoji=document.getElementById('e-emoji').value.trim()||p.emoji;
   const rp=document.getElementById('e-price').value.trim();
-  p.price=rp?(rp.startsWith('₹')?rp:'₹'+rp):p.price;
-  p.color=eColor;p.badge=eBadge;
-  if(!keepMedia){p.media=editMedia;p.mediaType=editMType;}
-  save();renderProducts();closeEdit();
+  const updated = {
+    name:newName,
+    desc:newDesc,
+    emoji:document.getElementById('e-emoji').value.trim()||p.emoji,
+    price:rp?(rp.startsWith('₹')?rp:'₹'+rp):p.price,
+    color:eColor,
+    badge:eBadge,
+    media: keepMedia ? p.media : editMedia,
+    mediaType: keepMedia ? p.mediaType : editMType
+  };
+
+  fetch(`${API_URL}/api/products/${editId}`, {
+    method:'PUT',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(updated)
+  })
+  .then(res=>res.json())
+  .then(data=>{
+    if(data.success){
+      products = data.products;
+      saveProductsLocally();
+      renderProducts();
+      closeEdit();
+    } else {
+      alert('❌ Could not update product.');
+    }
+  })
+  .catch(err=>{console.error(err);alert('❌ Network error while updating product.');});
 }
 
 // DELETE
-function delProduct(id){if(!confirm('Delete this product?'))return;products=products.filter(p=>p.id!==id);save();renderProducts();renderManage();}
+function delProduct(id){
+  if(!confirm('Delete this product?'))return;
+  fetch(`${API_URL}/api/products/${id}`, { method:'DELETE' })
+    .then(res=>res.json())
+    .then(data=>{
+      if(data.success){
+        products = products.filter(p=>p.id!==id);
+        saveProductsLocally();
+        renderProducts();
+        renderManage();
+      } else {
+        alert('❌ Could not delete product.');
+      }
+    })
+    .catch(err=>{console.error(err);alert('❌ Network error while deleting product.');});
+}
 
 // INSTAGRAM
 function updateInstaPreview(){
@@ -866,21 +943,16 @@ document.getElementById('nav-menu').querySelectorAll('a').forEach(link=>{
 // INIT
 console.log('[PetalPost] Initializing website...');
 document.addEventListener('DOMContentLoaded',()=>{
-  load();
-  if(!products.length) console.warn('[PetalPost] Products array is empty after load!');
-  else console.log(`[PetalPost] ✓ Loaded ${products.length} products`);
-  renderProducts();
-  applyIGLinks();
-  reObserve();
-  activateHeartFall();
-  console.log('[PetalPost] ✓ Website ready!');
+  loadProducts().then(() => {
+    if(!products.length) console.warn('[PetalPost] Products array is empty after load!');
+    else console.log(`[PetalPost] ✓ Loaded ${products.length} products`);
+    renderProducts();
+    applyIGLinks();
+    reObserve();
+    activateHeartFall();
+    console.log('[PetalPost] ✓ Website ready!');
+  });
 });
-// Fallback for already-loaded DOM
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded',()=>{});
-}else{
-  load();renderProducts();applyIGLinks();reObserve();activateHeartFall();
-}
 </script>
 </body>
 </html>

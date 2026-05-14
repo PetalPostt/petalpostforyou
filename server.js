@@ -86,10 +86,13 @@ app.post('/api/products', express.json(), (req, res) => {
   const newProduct = {
     id: Date.now(),
     name: req.body.name,
-    description: req.body.description,
+    desc: req.body.desc,
+    emoji: req.body.emoji || '🎁',
     price: req.body.price,
-    image: req.body.image,
-    category: req.body.category,
+    color: req.body.color || 'rose-bg',
+    badge: req.body.badge || '',
+    media: req.body.media || null,
+    mediaType: req.body.mediaType || null,
     createdAt: new Date().toISOString()
   };
   
@@ -97,6 +100,36 @@ app.post('/api/products', express.json(), (req, res) => {
   fs.writeFileSync(productsFile, JSON.stringify(products, null, 2));
   
   res.json({ success: true, product: newProduct });
+});
+
+// Update product
+app.put('/api/products/:id', express.json(), (req, res) => {
+  const productsFile = path.join(__dirname, 'products.json');
+  if (!fs.existsSync(productsFile)) {
+    return res.status(404).json({ error: 'No products found' });
+  }
+
+  let products = JSON.parse(fs.readFileSync(productsFile, 'utf8'));
+  const updated = products.map(product => {
+    if (product.id === parseInt(req.params.id, 10)) {
+      return {
+        ...product,
+        name: req.body.name,
+        desc: req.body.desc,
+        emoji: req.body.emoji || product.emoji || '🎁',
+        price: req.body.price || product.price,
+        color: req.body.color || product.color,
+        badge: req.body.badge || product.badge,
+        media: req.body.media !== undefined ? req.body.media : product.media,
+        mediaType: req.body.mediaType !== undefined ? req.body.mediaType : product.mediaType
+      };
+    }
+    return product;
+  });
+
+  products = updated;
+  fs.writeFileSync(productsFile, JSON.stringify(products, null, 2));
+  res.json({ success: true, products });
 });
 
 // Delete product
