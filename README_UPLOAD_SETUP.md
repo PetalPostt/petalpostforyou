@@ -65,6 +65,19 @@ GET    /api/files            - List all files
 
 ## 💾 Deployment
 
+### Best option: Render
+Render is the most convenient host for this Node.js app because it supports a web service with `server.js`, serves static files, and provides automatic deploys from GitHub.
+
+1. Push your repo to GitHub.
+2. Create a new Web Service on Render.
+3. Connect the repository `PetalPostt/petalpostforyou`.
+4. Render will use `render.yaml` and deploy from branch `main`.
+
+Render will use:
+- build command: `npm install`
+- start command: `npm start`
+- automatic deploys on GitHub pushes
+
 ### For Vercel:
 Add `vercel.json`:
 ```json
