@@ -175,6 +175,26 @@ footer p{font-size:0.82rem;}
 }
 .studio-portal-btn:hover{color:rgba(255,255,255,0.55);border-color:rgba(255,255,255,0.25);}
 
+.chat-button{
+  position:fixed;bottom:22px;right:22px;z-index:800;background:linear-gradient(135deg,var(--rose),var(--gold));color:#fff;border:none;border-radius:50px;padding:0.9rem 1.3rem;font-size:0.95rem;font-weight:700;cursor:pointer;box-shadow:0 16px 38px rgba(211,95,140,0.28);display:flex;align-items:center;gap:0.5rem;transition:transform 0.2s,box-shadow 0.2s;
+}
+.chat-button:hover{transform:translateY(-2px);box-shadow:0 20px 44px rgba(211,95,140,0.35);}
+.chat-panel{position:fixed;bottom:90px;right:22px;z-index:850;width:340px;max-height:500px;background:#fff;border-radius:24px;box-shadow:0 24px 60px rgba(45,31,37,0.18);overflow:hidden;display:none;flex-direction:column;}
+.chat-panel.open{display:flex;}
+.chat-header{background:linear-gradient(135deg,var(--rose),var(--gold));color:#fff;padding:1rem 1rem 0.9rem;display:flex;align-items:center;justify-content:space-between;gap:0.5rem;}
+.chat-header strong{font-size:0.95rem;line-height:1.2;}
+.chat-close{background:rgba(255,255,255,0.2);border:none;color:#fff;width:34px;height:34px;border-radius:50%;font-size:1.2rem;cursor:pointer;transition:background 0.2s;}
+.chat-close:hover{background:rgba(255,255,255,0.35);}
+.chat-messages{padding:1rem;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:0.8rem;background:#fff;}
+.chat-message{max-width:85%;padding:0.8rem 1rem;border-radius:18px;line-height:1.4;font-size:0.9rem;}
+.chat-message.user{align-self:flex-end;background:linear-gradient(135deg,#F8E4F0,#FDE8E8);color:var(--charcoal);border:1px solid rgba(211,95,140,0.18);}
+.chat-message.bot{align-self:flex-start;background:#F8F8F8;color:var(--charcoal);border:1px solid rgba(212,175,55,0.18);}
+.chat-form{display:flex;border-top:1px solid rgba(45,28,40,0.08);}
+.chat-form input{flex:1;border:none;padding:0.9rem 1rem;font-size:0.95rem;font-family:'DM Sans',sans-serif;color:var(--charcoal);}
+.chat-form input:focus{outline:none;}
+.chat-form button{background:var(--rose);color:#fff;border:none;padding:0 1.2rem;cursor:pointer;font-weight:700;letter-spacing:0.03em;transition:background 0.2s;}
+.chat-form button:hover{background:var(--rose-dark);}
+
 /* ── ADMIN ── */
 #admin-bar{display:none;position:fixed;top:0;left:0;right:0;z-index:300;background:var(--charcoal);color:#fff;padding:0.5rem 5%;font-size:0.82rem;font-weight:500;align-items:center;justify-content:space-between;gap:1rem;}
 #admin-bar.open{display:flex;}
@@ -461,6 +481,21 @@ footer p{font-size:0.82rem;}
     <button class="studio-portal-btn" onclick="showLogin()">✦ Studio Portal ✦</button>
   </div>
 </footer>
+
+<button class="chat-button" id="chat-open-btn" aria-label="Open chat">💬 Chat with us</button>
+<div class="chat-panel" id="chat-panel" aria-hidden="true">
+  <div class="chat-header">
+    <strong>PetalPost Assistant</strong>
+    <button class="chat-close" id="chat-close-btn" aria-label="Close chat">×</button>
+  </div>
+  <div class="chat-messages" id="chat-messages">
+    <div class="chat-message bot">Hi there! Ask me about gifts, pricing, or how to order — I’m here to help.</div>
+  </div>
+  <form class="chat-form" id="chat-form">
+    <input id="chat-input" type="text" placeholder="Ask a question..." autocomplete="off" aria-label="Chat input" />
+    <button type="submit">Send</button>
+  </form>
+</div>
 
 <!-- LOGIN -->
 <div id="admin-login">
@@ -952,6 +987,65 @@ document.addEventListener('DOMContentLoaded',()=>{
     activateHeartFall();
     console.log('[PetalPost] ✓ Website ready!');
   });
+});
+
+// Chatbot
+const chatOpenBtn = document.getElementById('chat-open-btn');
+const chatPanel = document.getElementById('chat-panel');
+const chatCloseBtn = document.getElementById('chat-close-btn');
+const chatForm = document.getElementById('chat-form');
+const chatInput = document.getElementById('chat-input');
+const chatMessages = document.getElementById('chat-messages');
+
+const botReplies = [
+  {keywords: ['price', 'cost', 'charge', '₹', 'rs'], reply: 'Our gifts start at ₹99. If you want a custom design, just DM us and we’ll make it special for the occasion.'},
+  {keywords: ['order', 'buy', 'purchase', 'dm'], reply: 'To order, send us a message on Instagram and share your idea. We will reply with a draft and payment details.'},
+  {keywords: ['gift', 'custom', 'design', 'theme'], reply: 'We create custom virtual gifts for birthdays, anniversaries, festivals and more. Tell us the mood and we’ll design it.'},
+  {keywords: ['delivery', 'time', 'hours', 'when'], reply: 'Most orders are delivered within 24 hours after we agree on the design.'},
+  {keywords: ['instagram', 'contact', 'dm', 'message'], reply: 'You can contact us via Instagram DM from the button on the site or by visiting our profile.'}
+];
+
+function openChat() {
+  chatPanel.classList.add('open');
+  chatPanel.setAttribute('aria-hidden', 'false');
+  chatInput.focus();
+}
+
+function closeChat() {
+  chatPanel.classList.remove('open');
+  chatPanel.setAttribute('aria-hidden', 'true');
+}
+
+function createChatMessage(text, sender) {
+  const msg = document.createElement('div');
+  msg.className = `chat-message ${sender}`;
+  msg.textContent = text;
+  chatMessages.appendChild(msg);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function getBotReply(message) {
+  const normalized = message.toLowerCase();
+  for (const item of botReplies) {
+    if (item.keywords.some(keyword => normalized.includes(keyword))) {
+      return item.reply;
+    }
+  }
+  return 'Thanks for your question! Please DM us on Instagram if you want a fast, personalised answer — we reply quickly.';
+}
+
+chatOpenBtn.addEventListener('click', openChat);
+chatCloseBtn.addEventListener('click', closeChat);
+
+chatForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const message = chatInput.value.trim();
+  if (!message) return;
+  createChatMessage(message, 'user');
+  chatInput.value = '';
+  setTimeout(() => {
+    createChatMessage(getBotReply(message), 'bot');
+  }, 400);
 });
 </script>
 </body>
