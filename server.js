@@ -40,6 +40,17 @@ db.serialize(() => {
     mediaType TEXT,
     createdAt TEXT NOT NULL
   )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS contacts (
+    id INTEGER PRIMARY KEY,
+    name TEXT,
+    email TEXT,
+    phone TEXT,
+    occasion TEXT,
+    budget TEXT,
+    message TEXT,
+    createdAt TEXT NOT NULL
+  )`);
 });
 
 let s3Client;
@@ -214,6 +225,20 @@ app.delete('/api/products/:id', (req, res) => {
       return res.status(500).json({ error: 'Could not delete product' });
     }
     res.json({ success: true });
+  });
+  stmt.finalize();
+});
+
+app.post('/api/contacts', (req, res) => {
+  const { name, email, phone, occasion, budget, message } = req.body;
+  const createdAt = new Date().toISOString();
+  const stmt = db.prepare(`INSERT INTO contacts (name, email, phone, occasion, budget, message, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+  stmt.run(name || null, email || null, phone || null, occasion || null, budget || null, message || null, createdAt, function(err) {
+    if (err) {
+      console.error('DB contact insert error:', err);
+      return res.status(500).json({ error: 'Could not save contact info' });
+    }
+    res.json({ success: true, contactId: this.lastID });
   });
   stmt.finalize();
 });

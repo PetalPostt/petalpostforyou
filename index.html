@@ -489,7 +489,7 @@ footer p{font-size:0.82rem;}
     <button class="chat-close" id="chat-close-btn" aria-label="Close chat">×</button>
   </div>
   <div class="chat-messages" id="chat-messages">
-    <div class="chat-message bot">Hi there! Ask me about gifts, pricing, or how to order — I’m here to help.</div>
+    <div class="chat-message bot">Hi! I’m PetalPost — your gift-pick assistant. What occasion are you celebrating?</div>
   </div>
   <form class="chat-form" id="chat-form">
     <input id="chat-input" type="text" placeholder="Ask a question..." autocomplete="off" aria-label="Chat input" />
@@ -997,13 +997,13 @@ const chatForm = document.getElementById('chat-form');
 const chatInput = document.getElementById('chat-input');
 const chatMessages = document.getElementById('chat-messages');
 
-const botReplies = [
-  {keywords: ['price', 'cost', 'charge', '₹', 'rs'], reply: 'Our gifts start at ₹99. If you want a custom design, just DM us and we’ll make it special for the occasion.'},
-  {keywords: ['order', 'buy', 'purchase', 'dm'], reply: 'To order, send us a message on Instagram and share your idea. We will reply with a draft and payment details.'},
-  {keywords: ['gift', 'custom', 'design', 'theme'], reply: 'We create custom virtual gifts for birthdays, anniversaries, festivals and more. Tell us the mood and we’ll design it.'},
-  {keywords: ['delivery', 'time', 'hours', 'when'], reply: 'Most orders are delivered within 24 hours after we agree on the design.'},
-  {keywords: ['instagram', 'contact', 'dm', 'message'], reply: 'You can contact us via Instagram DM from the button on the site or by visiting our profile.'}
-];
+let chatStage = 'initial';
+const chatContext = {
+  occasion: '',
+  budget: '',
+  contact: '',
+  message: ''
+};
 
 function openChat() {
   chatPanel.classList.add('open');
@@ -1025,16 +1025,6 @@ function createChatMessage(text, sender, extraClass) {
   return msg;
 }
 
-function getBotReply(message) {
-  const normalized = message.toLowerCase();
-  for (const item of botReplies) {
-    if (item.keywords.some(keyword => normalized.includes(keyword))) {
-      return item.reply;
-    }
-  }
-  return 'Thanks for your question! Please DM us on Instagram if you want a fast, personalised answer — we reply quickly.';
-}
-
 function showTyping() {
   return createChatMessage('Typing…', 'bot', 'typing');
 }
@@ -1043,6 +1033,113 @@ function removeTyping(typingMessage) {
   if (typingMessage) {
     typingMessage.remove();
   }
+}
+
+function parseContactInfo(text) {
+  const emailMatch = text.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
+  const phoneMatch = text.match(/(?:\+?\d[\d\s-]{6,}\d)/);
+  return {
+    email: emailMatch ? emailMatch[0] : null,
+    phone: phoneMatch ? phoneMatch[0].replace(/[^+\d]/g, '') : null
+  };
+}
+
+function formatSuggestion(occasion, budget) {
+  const amount = parseInt(String(budget).replace(/[^0-9]/g, ''), 10) || 150;
+  const occ = (occasion || '').toLowerCase();
+  let idea = 'a custom animated virtual gift with your personal message.';
+
+  if (occ.includes('birthday')) {
+    idea = amount <= 150 ? 'a cute birthday digital card with a personalized message' : 'a premium birthday animation with custom text and music';
+  } else if (occ.includes('anniversary') || occ.includes('annivers')) {
+    idea = amount <= 150 ? 'a romantic anniversary greeting video with flowers' : 'a deluxe anniversary story card with a shimmering design';
+  } else if (occ.includes('wedding') || occ.includes('proposal')) {
+    idea = amount <= 150 ? 'an elegant wedding congratulations card' : 'a bespoke wedding gift animation with your story';
+  } else if (occ.includes('festival') || occ.includes('diwali') || occ.includes('holi') || occ.includes('eid')) {
+    idea = amount <= 150 ? 'a festive greeting with bright colors and warm wishes' : 'a premium festival gift animation with custom details';
+  } else if (occ.includes('thank') || occ.includes('congrats')) {
+    idea = amount <= 150 ? 'a heartfelt thank-you card with a warm message' : 'a custom congratulations animation with stylish visuals';
+  }
+
+  if (amount <= 150) {
+    return `For ${occasion} on a budget of around ₹${amount}, I suggest ${idea}. It’s sweet, affordable, and perfect for sharing over DM.`;
+  }
+  if (amount <= 300) {
+    return `For ${occasion} with ₹${amount} in mind, I recommend ${idea} — it gives you a richer design while still staying budget-friendly.`;
+  }
+  return `With ₹${amount}, I’d choose ${idea} and add a premium custom finish to match the occasion beautifully.`;
+}
+
+async function saveContact(data) {
+  try {
+    const response = await fetch(`${API_URL}/api/contacts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('Contact save error:', error);
+    return false;
+  }
+}
+
+function askNextQuestion() {
+  if (chatStage === 'initial') {
+    createChatMessage('Hi! I’m PetalPost — your gift-pick assistant. What occasion are you celebrating?', 'bot');
+    return;
+  }
+  if (chatStage === 'askBudget') {
+    createChatMessage('Lovely! What budget are you looking at? Just a number is fine.', 'bot');
+    return;
+  }
+  if (chatStage === 'askContact') {
+    createChatMessage('Great choice. Can I get your phone or email so I can send you a promo and follow up with the final design?', 'bot');
+    return;
+  }
+}
+
+function handleChatSubmission(message) {
+  if (chatStage === 'initial') {
+    chatContext.occasion = message;
+    chatStage = 'askBudget';
+    askNextQuestion();
+    return;
+  }
+
+  if (chatStage === 'askBudget') {
+    chatContext.budget = message;
+    const suggestion = formatSuggestion(chatContext.occasion, chatContext.budget);
+    createChatMessage(suggestion, 'bot');
+    chatStage = 'askContact';
+    askNextQuestion();
+    return;
+  }
+
+  if (chatStage === 'askContact') {
+    const contact = parseContactInfo(message);
+    if (!contact.email && !contact.phone) {
+      createChatMessage('Please share your phone number or email so we can send the promo and follow up.', 'bot');
+      return;
+    }
+    chatContext.contact = message;
+    chatContext.message = `Occasion: ${chatContext.occasion}; Budget: ${chatContext.budget}`;
+    saveContact({
+      name: null,
+      email: contact.email,
+      phone: contact.phone,
+      occasion: chatContext.occasion,
+      budget: chatContext.budget,
+      message: chatContext.message
+    }).then(saved => {
+      createChatMessage(saved ? 'Thanks! I’ve saved your contact and will reach out soon with a special offer.' : 'Thanks! I’ve got your details and will reach out soon.', 'bot');
+      chatStage = 'done';
+    });
+    return;
+  }
+
+  const suggestion = formatSuggestion(chatContext.occasion || message, chatContext.budget || '150');
+  createChatMessage(suggestion, 'bot');
 }
 
 chatOpenBtn.addEventListener('click', openChat);
@@ -1055,23 +1152,26 @@ chatForm.addEventListener('submit', async (event) => {
   createChatMessage(message, 'user');
   chatInput.value = '';
 
-  const typingMessage = showTyping();
+  if (chatStage !== 'done') {
+    handleChatSubmission(message);
+    return;
+  }
 
+  const typingMessage = showTyping();
   try {
     const response = await fetch(`${API_URL}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message })
     });
-
     const data = await response.json().catch(() => ({}));
-    const reply = response.ok && data.reply ? data.reply : getBotReply(message);
+    const reply = response.ok && data.reply ? data.reply : formatSuggestion(chatContext.occasion, chatContext.budget);
     removeTyping(typingMessage);
     createChatMessage(reply, 'bot');
   } catch (error) {
     console.error('Chat error:', error);
     removeTyping(typingMessage);
-    createChatMessage(getBotReply(message), 'bot');
+    createChatMessage(formatSuggestion(chatContext.occasion, chatContext.budget), 'bot');
   }
 });
 </script>
