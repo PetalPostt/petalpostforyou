@@ -1016,12 +1016,13 @@ function closeChat() {
   chatPanel.setAttribute('aria-hidden', 'true');
 }
 
-function createChatMessage(text, sender) {
+function createChatMessage(text, sender, extraClass) {
   const msg = document.createElement('div');
-  msg.className = `chat-message ${sender}`;
+  msg.className = `chat-message ${sender}` + (extraClass ? ` ${extraClass}` : '');
   msg.textContent = text;
   chatMessages.appendChild(msg);
   chatMessages.scrollTop = chatMessages.scrollHeight;
+  return msg;
 }
 
 function getBotReply(message) {
@@ -1034,18 +1035,44 @@ function getBotReply(message) {
   return 'Thanks for your question! Please DM us on Instagram if you want a fast, personalised answer — we reply quickly.';
 }
 
+function showTyping() {
+  return createChatMessage('Typing…', 'bot', 'typing');
+}
+
+function removeTyping(typingMessage) {
+  if (typingMessage) {
+    typingMessage.remove();
+  }
+}
+
 chatOpenBtn.addEventListener('click', openChat);
 chatCloseBtn.addEventListener('click', closeChat);
 
-chatForm.addEventListener('submit', (event) => {
+chatForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const message = chatInput.value.trim();
   if (!message) return;
   createChatMessage(message, 'user');
   chatInput.value = '';
-  setTimeout(() => {
+
+  const typingMessage = showTyping();
+
+  try {
+    const response = await fetch(`${API_URL}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message })
+    });
+
+    const data = await response.json().catch(() => ({}));
+    const reply = response.ok && data.reply ? data.reply : getBotReply(message);
+    removeTyping(typingMessage);
+    createChatMessage(reply, 'bot');
+  } catch (error) {
+    console.error('Chat error:', error);
+    removeTyping(typingMessage);
     createChatMessage(getBotReply(message), 'bot');
-  }, 400);
+  }
 });
 </script>
 </body>

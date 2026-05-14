@@ -6,10 +6,12 @@ const path = require('path');
 const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
 const { S3Client, PutObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
+const { OpenAI } = require('openai');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const useS3 = process.env.S3_BUCKET && process.env.AWS_REGION;
+const hasOpenAI = Boolean(process.env.OPENAI_API_KEY);
 const uploadsDir = path.join(__dirname, 'uploads');
 const dataDir = path.join(__dirname, 'data');
 const dbPath = path.join(dataDir, 'products.db');
@@ -72,6 +74,11 @@ if (!useS3 && !fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
+let openaiClient;
+if (hasOpenAI) {
+  openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
+
 app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
@@ -118,6 +125,41 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     url: `/uploads/${req.file.filename}`,
     size: req.file.size
   });
+});
+
+app.post('/api/chat', async (req, res) => {
+  const { message } = req.body;
+  if (!message || typeof message !== 'string' || !message.trim()) {
+    return res.status(400).json({ error: 'Message is required' });
+  }
+
+  if (!hasOpenAI || !openaiClient) {
+    return res.status(500).json({ error: 'OpenAI API key not configured' });
+  }
+
+  try {
+    const response = await openaiClient.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a friendly customer support assistant for PetalPost, a small Indian virtual gift studio. Keep answers short, helpful, and suggest Instagram DM for orders when appropriate.'
+        },
+        { role: 'user', content: message.trim() }
+      ],
+      max_tokens: 220,
+      temperature: 0.7
+    });
+
+    const reply = response.choices?.[0]?.message?.content?.trim();
+    if (!reply) {
+      throw new Error('Empty response from OpenAI');
+    }
+    return res.json({ success: true, reply });
+  } catch (error) {
+    console.error('OpenAI chat error:', error);
+    return res.status(500).json({ error: 'Chat service unavailable' });
+  }
 });
 
 app.get('/api/products', (req, res) => {
