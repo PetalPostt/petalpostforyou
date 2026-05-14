@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PetalPost Test</title>
+</head>
+<body>
+  <h1>Testing Product Loading...</h1>
+  <div id="result"></div>
+  <script>
+    // Copy DEFAULTS from the main site
+    const DEFAULTS=[
+      {id:1,name:'Birthday Gift Card',desc:'A personalised animated birthday card with a custom message, name, and your choice of theme.',emoji:'🎂',price:'₹99',color:'rose-bg',badge:'Popular',media:null,mediaType:null},
+      {id:2,name:'Anniversary Surprise',desc:'A romantic digital gift with your love story and a heartfelt message — crafted just for them.',emoji:'💍',price:'₹120',color:'gold-bg',badge:'',media:null,mediaType:null},
+      {id:3,name:'Graduation Gift',desc:"Celebrate their big achievement with a stunning custom digital gift they'll keep forever.",emoji:'🎓',price:'₹110',color:'blue-bg',badge:'New',media:null,mediaType:null},
+      {id:4,name:'Friendship Day Special',desc:'A warm, quirky gift full of inside jokes and everything that makes your friendship unique.',emoji:'💌',price:'₹99',color:'purple-bg',badge:'',media:null,mediaType:null},
+      {id:5,name:'Eid / Festival Gift',desc:'Share the joy of Eid, Diwali, or any festival with a beautifully crafted virtual gift card.',emoji:'🌙',price:'₹99',color:'mint-bg',badge:'',media:null,mediaType:null},
+      {id:6,name:'Your Custom Idea',desc:"Have something specific in mind? Tell us your idea — any occasion, any person. We'll design it.",emoji:'✨',price:'₹99–₹150',color:'warm-bg',badge:'',media:null,mediaType:null}
+    ];
+    const SK_P='pp_products_v2';
+    let products=[];
+    function load(){const s=localStorage.getItem(SK_P);products=s?JSON.parse(s):JSON.parse(JSON.stringify(DEFAULTS));}
+    load();
+    const result = document.getElementById('result');
+    result.innerHTML = '<p><strong>✓ Products Loaded: ' + products.length + '</strong></p>';
+    products.forEach(p => {
+      result.innerHTML += '<div style="border:1px solid #ccc;padding:10px;margin:10px 0;"><strong>' + p.name + '</strong><br>' + p.price + ' ' + p.emoji + '</div>';
+    });
+  </script>
+</body>
+</html>

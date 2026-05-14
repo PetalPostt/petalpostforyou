@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PetalPost - Admin Panel</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #FFF6F3 0%, #F8E4F0 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(45, 31, 37, 0.08);
+      margin-bottom: 30px;
+    }
+
+    h1 {
+      color: #7A335A;
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #7E6F7E;
+      font-size: 1rem;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+      background: white;
+      padding: 10px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(45, 31, 37, 0.05);
+    }
+
+    .tab-btn {
+      background: none;
+      border: 2px solid transparent;
+      padding: 12px 24px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #7E6F7E;
+      border-radius: 8px;
+      transition: all 0.3s;
+    }
+
+    .tab-btn.active {
+      background: #D35F8C;
+      color: white;
+      border-color: #D35F8C;
+    }
+
+    .tab-btn:hover:not(.active) {
+      background: #F8E4F0;
+      color: #D35F8C;
+    }
+
+    .tab-content {
+      display: none;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(45, 31, 37, 0.08);
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #2D1F25;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="number"],
+    input[type="file"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #E0D5E0;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 1rem;
+      transition: border-color 0.3s;
+    }
+
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    input[type="number"]:focus,
+    input[type="file"]:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: #D35F8C;
+      box-shadow: 0 0 0 3px rgba(211, 95, 140, 0.1);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .upload-area {
+      border: 3px dashed #D4AF37;
+      border-radius: 12px;
+      padding: 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      background: #FBF0C7;
+    }
+
+    .upload-area:hover {
+      background: #FAE8A0;
+      border-color: #D35F8C;
+    }
+
+    .upload-area.dragover {
+      background: #F8E4F0;
+      border-color: #D35F8C;
+    }
+
+    .upload-icon {
+      font-size: 3rem;
+      margin-bottom: 10px;
+    }
+
+    button {
+      background: #D35F8C;
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 50px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      letter-spacing: 0.05em;
+    }
+
+    button:hover {
+      background: #7A335A;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(211, 95, 140, 0.3);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .btn-secondary {
+      background: #D4AF37;
+    }
+
+    .btn-secondary:hover {
+      background: #9C7A25;
+    }
+
+    .btn-danger {
+      background: #E74C3C;
+    }
+
+    .btn-danger:hover {
+      background: #C0392B;
+    }
+
+    .message {
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .message.success {
+      background: #D4EDDA;
+      color: #155724;
+      border: 1px solid #C3E6CB;
+      display: block;
+    }
+
+    .message.error {
+      background: #F8D7DA;
+      color: #721C24;
+      border: 1px solid #F5C6CB;
+      display: block;
+    }
+
+    .message.info {
+      background: #D1ECF1;
+      color: #0C5460;
+      border: 1px solid #BEE5EB;
+      display: block;
+    }
+
+    .file-item {
+      background: #F8E4F0;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .file-name {
+      font-weight: 600;
+      color: #2D1F25;
+      word-break: break-all;
+    }
+
+    .file-size {
+      font-size: 0.85rem;
+      color: #7E6F7E;
+    }
+
+    .product-item {
+      background: #F8E4F0;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      border-left: 4px solid #D35F8C;
+    }
+
+    .product-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .product-name {
+      font-weight: 700;
+      color: #2D1F25;
+      font-size: 1.1rem;
+    }
+
+    .product-price {
+      color: #D4AF37;
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+
+    .product-image {
+      max-width: 100px;
+      max-height: 100px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 1.8rem;
+      }
+
+      .tabs {
+        flex-wrap: wrap;
+      }
+    }
+
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #D4AF37;
+      border-top-color: #D35F8C;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🌹 PetalPost Admin Panel</h1>
+      <p class="subtitle">Upload and manage your content without redeploying</p>
+    </header>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('upload')">📁 File Upload</button>
+      <button class="tab-btn" onclick="switchTab('products')">🎁 Products</button>
+      <button class="tab-btn" onclick="switchTab('files')">📋 Files List</button>
+    </div>
+
+    <!-- Upload Tab -->
+    <div id="upload" class="tab-content active">
+      <h2 style="color: #D35F8C; margin-bottom: 20px;">Upload Media Files</h2>
+      <div id="uploadMessage" class="message"></div>
+
+      <div class="form-group">
+        <label>Select File to Upload</label>
+        <div class="upload-area" id="uploadArea">
+          <div class="upload-icon">📤</div>
+          <p style="font-weight: 600; margin-bottom: 8px;">Drag and drop your file here</p>
+          <p style="color: #7E6F7E; font-size: 0.9rem; margin-bottom: 15px;">or click to browse</p>
+          <button class="btn-secondary" onclick="document.getElementById('fileInput').click()">Choose File</button>
+          <input type="file" id="fileInput" style="display: none;" accept="image/*,.pdf">
+        </div>
+      </div>
+
+      <div id="uploadProgress" style="display: none; margin-top: 20px;">
+        <p style="margin-bottom: 10px;">Uploading...</p>
+        <div style="width: 100%; height: 8px; background: #E0D5E0; border-radius: 10px; overflow: hidden;">
+          <div id="progressBar" style="width: 0%; height: 100%; background: #D35F8C; transition: width 0.3s;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Products Tab -->
+    <div id="products" class="tab-content">
+      <h2 style="color: #D35F8C; margin-bottom: 20px;">Add New Product</h2>
+      <div id="productsMessage" class="message"></div>
+
+      <form id="productForm" style="margin-bottom: 40px;">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Product Name *</label>
+            <input type="text" id="productName" placeholder="e.g., Personalized Love Letter" required>
+          </div>
+          <div class="form-group">
+            <label>Price (₹) *</label>
+            <input type="number" id="productPrice" placeholder="99" min="0" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Category</label>
+            <select id="productCategory">
+              <option value="love">💕 Love & Romance</option>
+              <option value="birthday">🎂 Birthday</option>
+              <option value="anniversary">💍 Anniversary</option>
+              <option value="congratulations">🎉 Congratulations</option>
+              <option value="other">✨ Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Product Image URL</label>
+            <input type="text" id="productImage" placeholder="e.g., /uploads/gift-image.jpg">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="productDescription" placeholder="Describe your product..."></textarea>
+        </div>
+
+        <button type="submit" class="btn-secondary">✨ Add Product</button>
+      </form>
+
+      <h3 style="color: #D35F8C; margin-top: 40px; margin-bottom: 20px;">Products List</h3>
+      <div id="productsList"></div>
+    </div>
+
+    <!-- Files List Tab -->
+    <div id="files" class="tab-content">
+      <h2 style="color: #D35F8C; margin-bottom: 20px;">Uploaded Files</h2>
+      <button class="btn-secondary" onclick="loadFiles()" style="margin-bottom: 20px;">🔄 Refresh List</button>
+      <div id="filesList"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = window.location.origin;
+
+    // Tab switching
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      
+      document.getElementById(tabName).classList.add('active');
+      event.target.classList.add('active');
+
+      if (tabName === 'products') loadProducts();
+      if (tabName === 'files') loadFiles();
+    }
+
+    // File upload handling
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const uploadMessage = document.getElementById('uploadMessage');
+    const uploadProgress = document.getElementById('uploadProgress');
+    const progressBar = document.getElementById('progressBar');
+
+    uploadArea.addEventListener('click', () => fileInput.click());
+
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      const files = e.dataTransfer.files;
+      if (files.length) handleFileUpload(files[0]);
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length) handleFileUpload(e.target.files[0]);
+    });
+
+    function handleFileUpload(file) {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      uploadProgress.style.display = 'block';
+      progressBar.style.width = '0%';
+
+      fetch(`${API_URL}/api/upload`, {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        uploadProgress.style.display = 'none';
+        progressBar.style.width = '0%';
+        
+        if (data.success) {
+          showMessage(uploadMessage, `✅ File uploaded: ${data.originalName}`, 'success');
+          fileInput.value = '';
+          setTimeout(() => loadFiles(), 1000);
+        } else {
+          showMessage(uploadMessage, `❌ Upload failed: ${data.error}`, 'error');
+        }
+      })
+      .catch(err => {
+        uploadProgress.style.display = 'none';
+        showMessage(uploadMessage, `❌ Error: ${err.message}`, 'error');
+      });
+    }
+
+    // Product management
+    const productForm = document.getElementById('productForm');
+    const productsMessage = document.getElementById('productsMessage');
+
+    productForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const product = {
+        name: document.getElementById('productName').value,
+        price: parseFloat(document.getElementById('productPrice').value),
+        category: document.getElementById('productCategory').value,
+        image: document.getElementById('productImage').value,
+        description: document.getElementById('productDescription').value
+      };
+
+      fetch(`${API_URL}/api/products`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(product)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          showMessage(productsMessage, `✅ Product added: ${product.name}`, 'success');
+          productForm.reset();
+          loadProducts();
+        } else {
+          showMessage(productsMessage, `❌ Error: ${data.error}`, 'error');
+        }
+      })
+      .catch(err => showMessage(productsMessage, `❌ Error: ${err.message}`, 'error'));
+    });
+
+    function loadProducts() {
+      fetch(`${API_URL}/api/products`)
+        .then(res => res.json())
+        .then(products => {
+          const productsList = document.getElementById('productsList');
+          if (products.length === 0) {
+            productsList.innerHTML = '<p style="color: #7E6F7E; text-align: center;">No products yet</p>';
+            return;
+          }
+
+          productsList.innerHTML = products.map(p => `
+            <div class="product-item">
+              <div class="product-header">
+                <div>
+                  <div class="product-name">${p.name}</div>
+                  <div style="color: #7E6F7E; font-size: 0.9rem;">Category: ${p.category}</div>
+                </div>
+                <div style="text-align: right;">
+                  <div class="product-price">₹${p.price}</div>
+                  <button class="btn-danger" style="padding: 6px 12px; font-size: 0.9rem;" onclick="deleteProduct(${p.id})">Delete</button>
+                </div>
+              </div>
+              ${p.image ? `<img src="${p.image}" alt="${p.name}" class="product-image">` : ''}
+              ${p.description ? `<p style="color: #2D1F25; margin-bottom: 10px;">${p.description}</p>` : ''}
+              <div style="font-size: 0.85rem; color: #7E6F7E;">Added: ${new Date(p.createdAt).toLocaleDateString()}</div>
+            </div>
+          `).join('');
+        })
+        .catch(err => showMessage(productsMessage, `❌ Error loading products: ${err.message}`, 'error'));
+    }
+
+    function deleteProduct(id) {
+      if (!confirm('Are you sure you want to delete this product?')) return;
+
+      fetch(`${API_URL}/api/products/${id}`, { method: 'DELETE' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            showMessage(productsMessage, '✅ Product deleted', 'success');
+            loadProducts();
+          }
+        })
+        .catch(err => showMessage(productsMessage, `❌ Error: ${err.message}`, 'error'));
+    }
+
+    function loadFiles() {
+      fetch(`${API_URL}/api/files`)
+        .then(res => res.json())
+        .then(files => {
+          const filesList = document.getElementById('filesList');
+          if (files.length === 0) {
+            filesList.innerHTML = '<p style="color: #7E6F7E; text-align: center;">No files uploaded yet</p>';
+            return;
+          }
+
+          filesList.innerHTML = files.map(f => `
+            <div class="file-item">
+              <div>
+                <div class="file-name">📄 ${f.name}</div>
+                <div class="file-size">${(f.size / 1024).toFixed(2)} KB</div>
+              </div>
+              <button class="btn-secondary" style="padding: 8px 16px; font-size: 0.9rem;" onclick="copyToClipboard('${f.url}')">Copy URL</button>
+            </div>
+          `).join('');
+        })
+        .catch(err => console.error('Error loading files:', err));
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert('URL copied to clipboard!');
+      });
+    }
+
+    function showMessage(element, text, type) {
+      element.textContent = text;
+      element.className = `message ${type}`;
+      setTimeout(() => element.className = 'message', 5000);
+    }
+
+    // Load products on page load
+    loadProducts();
+  </script>
+</body>
+</html>
