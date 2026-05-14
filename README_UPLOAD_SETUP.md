@@ -27,16 +27,17 @@ Go to `http://localhost:3000/admin.html` to:
 ## 📁 Features
 
 ### File Upload
-- Upload images (JPG, PNG, GIF, WebP) and PDFs
+- Upload images, videos, and PDFs
 - Drag & drop support
-- Files stored in `/uploads` folder
+- Local file upload fallback in `/uploads`
+- Optional AWS S3 storage when `S3_BUCKET` and AWS credentials are configured
 - Get direct URLs for embedding
 
 ### Product Management
 - Add products with name, price, category, image, description
-- All products saved in `products.json`
-- Delete products anytime
-- Products persist between restarts
+- Products are stored persistently in SQLite (`data/products.db`)
+- Delete or edit products anytime
+- Shared between devices and deploys when hosted with persistent storage
 
 ### File Management
 - View all uploaded files
@@ -46,11 +47,12 @@ Go to `http://localhost:3000/admin.html` to:
 ## 📍 File Structure
 
 ```
-/uploads/          - Uploaded files
-products.json      - Product database
+/uploads/          - Local uploaded files (fallback)
+/data/products.db  - SQLite product database
 admin.html         - Admin dashboard
 server.js          - Backend server
 package.json       - Dependencies
+.env.example       - Sample environment config
 ```
 
 ## 🔗 API Endpoints
@@ -66,12 +68,18 @@ GET    /api/files            - List all files
 ## 💾 Deployment
 
 ### Best option: Render
-Render is the most convenient host for this Node.js app because it supports a web service with `server.js`, serves static files, and provides automatic deploys from GitHub.
+Render is the most convenient host for this Node.js app because it supports a web service with `server.js`, serves static files, uses persistent disk, and provides automatic GitHub deploys.
 
 1. Push your repo to GitHub.
 2. Create a new Web Service on Render.
 3. Connect the repository `PetalPostt/petalpostforyou`.
 4. Render will use `render.yaml` and deploy from branch `main`.
+
+If you want persistent file storage, configure AWS S3 credentials in Render environment settings and add them to your service:
+- `S3_BUCKET`
+- `AWS_REGION`
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
 
 Render will use:
 - build command: `npm install`
