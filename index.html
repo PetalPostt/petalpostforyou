@@ -1340,8 +1340,8 @@ transform:translateY(-4px) scale(1.03);
 let CFG = {
   cloudName: 'dg2o4e6jr',
   uploadPreset: 'petalpost_preset',
-  binKey: '',
-  binId: '',
+  binKey: '$2a$10$7mfRVt2AqASj5cOjBJNQ7.EFdnbOvhUdnsPWXIWDRUCZtAVb6iw8u',
+  binId: '6a0b51746877513b27926694',
   insta: 'petal.post.studio',
   password: '@smit@G@ut@m0102'
 };
@@ -1406,7 +1406,7 @@ async function uploadToCloudinary(file){
   fd.append('file', file);
   fd.append('upload_preset', CFG.uploadPreset);
   document.getElementById('uploadProgress').style.display='block';
-  const r = await fetch(`https://api.cloudinary.com/v1_1/${CFG.cloudName}/upload`,{
+  const r = await fetch(`https://api.cloudinary.com/v1_1/${CFG.cloudName}/auto/upload`,{
     method:'POST', body:fd
   });
   document.getElementById('uploadProgress').style.display='none';
